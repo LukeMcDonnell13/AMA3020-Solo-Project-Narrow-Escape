@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-v_ratio = 5.3
+v_ratio = 3.43
+# v_ratio = 4.32
 radius = 1
 r = radius
 m_v = 1
@@ -42,6 +43,16 @@ for i in range(len(circ_theta)):
     if x1[i]>0 and x2[i]<0:
         circ_theta[i]+=np.pi
 
+
+
+dogstepsize = np.sqrt((dog_circ_x1[1]-dog_circ_x1[0])**2+(dog_circ_x2[1]-dog_circ_x2[0])**2)
+dogstepsize2 = np.sqrt((dog_circ_x1[2]-dog_circ_x1[1])**2+(dog_circ_x2[2]-dog_circ_x2[1])**2)
+#print(dogstepsize, dogstepsize2)
+
+manstepsize = np.sqrt((x1[1]-x1[0])**2+(x2[1]-x2[0])**2)
+manstepsize2 = np.sqrt((x1[2]-x1[1])**2+(x2[2]-x2[1])**2)
+#print(manstepsize, manstepsize2)
+
 escaped = 0
 dash = 0
 
@@ -53,15 +64,17 @@ d_omega = d_v/r
 d_x1 = -1
 d_x2 = 0
 
-m_x1=1/v_ratio
+m_x1 = 1/v_ratio
 m_x2=0
+# m_x1=0
+# m_x2=0
 
 delta_x = d_x1-m_x1
 delta_y = d_x2-m_x2
 theta = np.arctan(delta_y/delta_x)
 
-m_dx1=m_v*v_ratio* timestep*np.cos(theta)
-m_dx2=m_v*v_ratio* timestep*np.cos(theta)
+m_dx1=m_v*np.sqrt(v_ratio)* timestep*np.cos(theta)
+m_dx2=m_v*np.sqrt(v_ratio)* timestep*np.cos(theta)
 
 m_x1_list=[m_x1]
 m_x2_list=[m_x2]
@@ -72,32 +85,41 @@ d_x2_list = [d_x2]
 i = 1
 
 
-while escaped == 0 and i<200:
+while escaped == 0 and i<7000:
     
-    #Determine the mans next pos by running 180 deg away from the dog
-    delta_x = m_x1-d_x1_list[i-1]
-    delta_y = m_x2-d_x2_list[i-1]
-    theta = np.arctan(delta_y/delta_x)
-
-    if delta_x*delta_y<0 or delta_x <0 :
-        theta+=np.pi
-    if delta_x>0 and delta_y<0:
-        theta+=np.pi
-
-    m_dx1=m_v*v_ratio* timestep*np.cos(theta)
-    m_dx2=m_v*v_ratio* timestep*np.sin(theta)
+    if dash == 1:
+        m_x1 += m_dx1
+        m_x2 += m_dx2
+        
+        m_x1_list.append(m_x1)
+        m_x2_list.append(m_x2)
+    else:
+        #Determine the mans next pos by running 180 deg away from the dog
+        delta_x = m_x1-d_x1_list[i-1]
+        delta_y = m_x2-d_x2_list[i-1]
+        theta = np.arctan(delta_y/delta_x)
     
-    m_x1 += m_dx1
-    m_x2 += m_dx2
+        if delta_x*delta_y<0 or delta_x <0 :
+            theta+=np.pi
+        if delta_x>0 and delta_y<0:
+            theta+=np.pi
     
-    m_x1_list.append(m_x1)
-    m_x2_list.append(m_x2)
+        m_dx1=m_v*np.pi* timestep*np.cos(theta)
+        m_dx2=m_v*np.pi* timestep*np.sin(theta)
+        
+        m_x1 += m_dx1
+        m_x2 += m_dx2
+        
+        m_x1_list.append(m_x1)
+        m_x2_list.append(m_x2)
     
     dog_theta = np.arctan(d_x2/d_x1)
     if d_x1*d_x2<0 or d_x1 <0 :
         dog_theta+=np.pi
     if d_x1>0 and d_x2<0:
         dog_theta+=np.pi
+    
+    
     
     for j in range(len(circ_theta)):
         if circ_theta[j]-theta_gap/2 <= theta<= circ_theta[j]+theta_gap/2:
@@ -132,41 +154,71 @@ while escaped == 0 and i<200:
     d_x1_list.append(d_x1)
     d_x2_list.append(d_x2)
     
+    min_dist=1
     
-    # plt.plot(x1,x2)
-    # plt.plot(m_x1_list,m_x2_list, label = "Man")
-    # plt.plot(d_x1,d_x2, "kx", label = "Dog")
-    # plt.ylim(-1, 1)
-    # plt.xlim(-1,1)
-    # ax = plt.gca()
-    # ax.set_aspect('equal', adjustable='box')
-    # plt.legend()
-    # plt.draw()
-    # plt.show()
+   
+    for j in range(len(x1)):
+        dist_j = np.sqrt((x1[j]-m_x1)**2+(x2[j]-m_x2)**2)
+        if dist_j<min_dist:
+            min_dist = dist_j
+            min_target_ind = j
+            min_target_x1 = x1[j]
+            min_target_x2 = x2[j]
     
     
-    # m_stepsize = np.sqrt(m_dx1**2 + m_dx2**2)
-    # m_dist = np.sqrt((m_x1-target_x1)**2 + (m_x2-target_x2)**2)
-    # m_steps =np.ceil(m_dist/m_stepsize) 
-    # d_steps = min(forward_dist-1, backward_dist-1)
+    m_stepsize = np.sqrt(m_dx1**2 + m_dx2**2)
+    m_dist = np.sqrt((m_x1-min_target_x1)**2 + (m_x2-min_target_x2)**2)
+    m_steps =np.ceil(m_dist/m_stepsize) 
     
-    # print(m_steps, d_steps)
     
-    # if m_steps<= d_steps:
+    if dog_ind*v_ratio <=min_target_ind:
+        min_forward_dist = min_target_ind-v_ratio*dog_ind
+        min_backward_dist = v_ratio*dog_ind + len(circ_theta) -min_target_ind
+    else: 
+        min_forward_dist = min_target_ind + len(circ_theta) - dog_ind*v_ratio
+        min_backward_dist = v_ratio*dog_ind-min_target_ind
+    
+    
+    d_steps = np.ceil(min(min_forward_dist-1, min_backward_dist-1)/(v_ratio))
+    
+    
+    # if m_steps< d_steps:
     #     dash = 1
+    #     target_x1 = min_target_x1
+    #     target_x2 = min_target_x2
     #     print("Dash")
+    # else:
+    #     dash = 0
 
-    i+=1     
+    i+=1   
+    
+    # if i%20 == 0:
+    #     plt.plot(x1,x2, ",")
+    #     plt.plot(m_x1_list,m_x2_list, label ="Man")
+    #     plt.plot(d_x1,d_x2, "k^", label = "Dog")
+    #     plt.plot(target_x1, target_x2, "gh", label = "Target")
+    #     plt.plot(min_target_x1, min_target_x2, "co", label = "Closest Point")
+    #     plt.ylim(-1, 1)
+    #     plt.xlim(-1,1)
+    #     ax = plt.gca()
+    #     ax.set_aspect('equal', adjustable='box')
+    #     plt.legend()
+    #     plt.draw()
+    #     plt.show() 
     
     if m_x1**2 + m_x2**2 >= r**2:
+        #if min(d_x1_list[i-1], d_x2_list[i-1]) < target_x1 < max(d_x1_list[i], d_x2_list[i])
         escaped = 1
         print("Sucessfully escaped")
         break
+    
+    
 
-plt.plot(x1,x2) 
-plt.plot(m_x1_list,m_x2_list, label = "Man")
-# plt.plot(d_x1,d_x2, "kx", label = "Dog")
-plt.plot(d_x1,d_x2, "kx", label = "Dog")
+plt.plot(x1,x2, ",")  
+plt.plot(m_x1_list,m_x2_list, label ="Man")
+plt.plot(d_x1,d_x2, "k^", label = "Dog")
+plt.plot(target_x1, target_x2, "go", label = "Target")
+plt.plot(min_target_x1, min_target_x2, "co", label = "Closest Point")
 plt.ylim(-1, 1)
 plt.xlim(-1,1)
 ax = plt.gca()
